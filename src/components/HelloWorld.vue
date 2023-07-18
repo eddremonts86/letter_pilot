@@ -54,6 +54,24 @@
                       </div>
                   </div>
                 </div>
+                <div class="prompt">
+                  <h3>Prompt</h3>
+                  <div>
+                    <v-text-field
+                      label="Temperature"
+                      type="number"
+                      min="0"
+                      max="1"
+                      v-model="temperature"
+                      ></v-text-field>
+                  </div>
+                  <div>
+                    <v-textarea
+                      label="Prompt"
+                      v-model="promptText"
+                      ></v-textarea>
+                  </div>
+                </div>
                 <v-divider class="mb-6"/>
                 <div v-if="!seeMore">
                   <div class="d-flex justify-center align-center">
@@ -106,6 +124,7 @@
             </v-tooltip>
           </div>
           <v-divider class="mb-3"/>
+          <p v-html="promptText" class="px-5"/>
           <p v-html="output" class="px-5"/>
         </v-col>
       </v-row>
@@ -115,18 +134,32 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import prompt from '@/components/prompt.js';
+
 interface selected {
   [key: string]: any;
 }
+interface prompt {
+  header: string;
+  userFullNameText?: string;
+  cityText?: string;
+  propertyTypeText?: string;
+  daysForSaleText?: string;
+  temperatureText?: string;
+  existingCopyHeader?: string;
+  existingCopyBody?: string;
+  avoid?: string;
+  incorporateVariablesText?: string;
+}
+const myPrompt: prompt = {} as prompt;
 
 export default defineComponent({
   name: 'HelloWorld',
   data: () => ({
-    toneValue: null,
-    variablesSelected: {} as selected,
-    existingMarketingCopy: '',
+    toneValue: 'funny',
+    variablesSelected: {"full_name":"full_name","city":"city","property_type":"property_type","days_for_sale":"days_for_sale"},
     output: '',
-    seeMore: false,
+    seeMore: true,
     loading: false,
     tone: [{
         value: 'funny',
@@ -166,8 +199,75 @@ export default defineComponent({
         content: 'Inserts the number of days the property has been for sale. For example “62”.',
         label: 'Days for Sale'
       },
-    ]
+    ],
+    temperature: 1,
+    prompt: {} as prompt,
+    existingMarketingCopy: '',
   }),
+  mounted() {
+    this.prompt = prompt(this.toneValue, this.temperature)
+    this.existingMarketingCopy = this.prompt.existingCopyBody || ''
+  },
+  watch: {
+    toneValue: function (val) {
+      this.prompt = prompt(val, this.temperature)
+    },
+    temperature: function (val) {
+      this.prompt = prompt(this.toneValue, val)
+    }
+  },
+  computed: {
+    promptText() {
+      const {
+        header,
+        propertyTypeText,
+        daysForSaleText,
+        cityText,
+        userFullNameText,
+        temperatureText,
+        existingCopyHeader,
+        avoid,
+        incorporateVariablesText
+    } = this.prompt
+
+    let content = {
+        incorporated: '',
+        fullName: '',
+        city: '',
+        propertyType: '',
+        daysForSale: '',
+      }
+
+    let Result =  {
+      header,
+      content: '',
+      temperatureText,
+      avoid,
+      existingCopyHeader ,
+      existingCopyBody : this.existingMarketingCopy
+
+    }
+    const variablesSelected = Object.keys(this.variablesSelected)
+    if(variablesSelected.length){
+      content.incorporated = incorporateVariablesText || ''
+    }
+    if('full_name' in this.variablesSelected){
+      content.fullName = userFullNameText || ''
+    }
+    if('city' in this.variablesSelected){
+      content.city = cityText || ''
+    }
+    if('property_type' in this.variablesSelected){
+      content.propertyType = propertyTypeText || ''
+    }
+    if('days_for_sale' in this.variablesSelected){
+      content.daysForSale = daysForSaleText || ''
+    }
+    Result.content = Object.values(content).join(' ')
+    return Object.values(Result).join(' ')
+    }
+  },
+
   methods: {
     addElement(variable : string, variablesSelected: selected){
       if(variablesSelected[variable]) {
@@ -270,5 +370,15 @@ body{
     border-radius: 20px;
     padding: .5rem;
     margin: 0;
+  }
+  .prompt{
+    padding: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    align-self: stretch;
+    border-radius: 6px;
+    border: 1px solid #E6E6E6;
+    background: #FCFBFC;
   }
 </style>
