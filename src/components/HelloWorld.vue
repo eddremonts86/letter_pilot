@@ -118,6 +118,21 @@
           <QuillEditor theme="snow" v-model:content="output" contentType="html"/>
         </v-col>
       </v-row>
+      <v-snackbar
+      v-model="showError"
+      timeout="3000"
+    >
+      <span>Invalid Token, please generate a new token </span>
+      <template v-slot:actions>
+        <v-btn
+          color="blue"
+          variant="text"
+          @click="showError = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
     </v-responsive>
   </v-container>
 </template>
@@ -128,10 +143,12 @@ import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import prompt from '@/components/prompt.js';
 import { generatePromptResults } from '@/components/ai.api.js'
+import { mapState } from 'vuex'
 
 interface selected {
   [key: string]: any;
 }
+
 interface promptType {
   header: string;
   userFullNameText?: string;
@@ -145,19 +162,23 @@ interface promptType {
   incorporateVariablesText?: string;
 }
 
+interface variablesSelectedType {
+  full_name: string;
+  city: string;
+  property_type: string;
+  days_for_sale: string;
+}
+
 export default defineComponent({
   name: 'HelloWorld',
   components: {
     QuillEditor
   },
+
   data: () => ({
     toneValue: 'funny',
-    variablesSelected: {
-      "full_name":"full_name",
-      "city":"city",
-      "property_type":"property_type",
-      "days_for_sale":"days_for_sale"
-    },
+    variablesSelected: {} as variablesSelectedType,
+    prompt: {} as promptType,
     output: '',
     seeMore: false,
     loading: false,
@@ -201,12 +222,21 @@ export default defineComponent({
       },
     ],
     temperature: 1,
-    prompt: {} as promptType,
     existingMarketingCopy: '',
+    showError: false,
+    authToken:{} as string | null,
   }),
   mounted() {
     this.prompt = prompt(this.toneValue, this.temperature)
     this.existingMarketingCopy = this.prompt.existingCopyBody || ''
+    this.variablesSelected = {
+      "full_name":"full_name",
+      "city":"city",
+      "property_type":"property_type",
+      "days_for_sale":"days_for_sale"
+    }
+    this.authToken = localStorage.getItem('token')
+
   },
   watch: {
     toneValue: function (val) {
@@ -214,9 +244,16 @@ export default defineComponent({
     },
     temperature: function (val) {
       this.prompt = prompt(this.toneValue, val)
+    },
+    token: function (val) {
+      console.log('val: ', val);
+      this.authToken = val
     }
   },
   computed: {
+      ...mapState({
+        token: state => state.token,
+      }),
     promptText() {
       const {
         header,
@@ -271,9 +308,8 @@ export default defineComponent({
     }
     Result.content = content.incorporated + content.openTag + content.fullName + content.city + content.propertyType + content.daysForSale + content.closeTag
     return Object.values(Result).join(' ')
-    }
+    },
   },
-
   methods: {
     addElement(variable : string, variablesSelected: selected){
       if(variablesSelected[variable]) {
@@ -290,12 +326,18 @@ export default defineComponent({
           temperature: this.temperature,
           prompt: this.promptText,
         }
-      this.output = await generatePromptResults(payload)
+      const  response  = await generatePromptResults(payload, this.authToken)
+      if(response.message){
+        localStorage.setItem('token', '')
+        this.showError = true
+      }else{
+        this.output =  response.response
+      }
       this.loading = false
     },
     openSeeMorePanel(){
       this.seeMore = !this.seeMore
-    }
+    },
   }
 })
 </script>
