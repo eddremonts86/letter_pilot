@@ -127,6 +127,7 @@ import { defineComponent } from 'vue'
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import prompt from '@/components/prompt.js';
+import { generatePromptResults } from '@/components/ai.api.js'
 
 interface selected {
   [key: string]: any;
@@ -242,7 +243,6 @@ export default defineComponent({
     let Result =  {
       header,
       content: '',
-      temperatureText,
       avoid,
       existingCopyHeader ,
       existingCopyBody : this.existingMarketingCopy
@@ -282,17 +282,15 @@ export default defineComponent({
         variablesSelected[variable] = variable
       }
     },
-    sendVariable(){
+    async sendVariable(){
       this.loading = true
-      /*
-        const variablesSelected = Object.keys(this.variablesSelected)
         const payload = {
-          tone: this.toneValue,
-          existingMarketingCopy: this.existingMarketingCopy,
-          variables: variablesSelected
-        }*/
-      this.output =
-      "<h1>Basic HTML Animals</h1><p>This is the first paragraph in our page. It introduces our animals.</p><h2>The Llama</h2><p>Our Llama is a big fan of list items. When she spies a patch of them on a web page, she will eat them like sweets, licking her lips as she goes.</p><h2>The Anaconda</h2><p>The crafty anaconda likes to slither around the page, travelling rapidlyby way of anchors to sneak up on his prey.</p>"
+          style: this.toneValue,
+          letter: this.existingMarketingCopy,
+          temperature: this.temperature,
+          prompt: this.promptText,
+        }
+      this.output = await generatePromptResults(payload)
       this.loading = false
     },
     openSeeMorePanel(){
