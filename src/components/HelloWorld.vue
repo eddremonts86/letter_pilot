@@ -54,10 +54,10 @@
                   <h3>Prompt</h3>
                   <div>
                     <v-text-field
-                      label="Temperature"
+                      label="Temperature (0 - 2.0)"
                       type="number"
                       min="0"
-                      max="1"
+                      max="2"
                       variant="outlined"
                       v-model="temperature"
                       ></v-text-field>
@@ -221,7 +221,7 @@ export default defineComponent({
         label: 'Days for Sale'
       },
     ],
-    temperature: 1,
+    temperature: 0.8,
     existingMarketingCopy: '',
     showError: false,
     authToken:{} as string | null,
@@ -321,8 +321,8 @@ export default defineComponent({
     async sendVariable(){
       this.loading = true
         const payload = {
-          style: this.toneValue,
-          letter: this.existingMarketingCopy,
+          // style: this.toneValue,
+          // letter: this.existingMarketingCopy,
           temperature: this.temperature,
           prompt: this.promptText,
         }
