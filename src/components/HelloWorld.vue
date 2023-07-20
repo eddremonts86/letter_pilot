@@ -2,11 +2,12 @@
   <v-container :fluid="seeMore">
     <v-responsive>
       <v-row class="d-flex  pa-5" :class="{seeMore, 'justify-center align-center' : !seeMore}">
-        <v-col cols="12" :md="seeMore ? 6 : 12" class="align-stretch d-flex align-center justify-center">
+        <v-col cols="12" :md="seeMore ? 6 : 12" class="d-flex align-center justify-center">
             <v-card class="card maxWidth" rounded>
                 <v-card-title>
                   <h2>Letter pilot by Resights</h2>
                 </v-card-title>
+                <v-divider></v-divider>
                 <v-card-text class="cardText">
                   <div>
                     <p>
@@ -17,8 +18,8 @@
                       The new template will be unique to you and you are welcome to use the text in a new template.
                     </p>
                   </div>
-                  <div>
-                    <h2>Settings</h2>
+                  <div class="prompt">
+                    <h3>Settings</h3>
                       <QuillEditor theme="snow" v-model:content="existingMarketingCopy" contentType="html"/>
                   </div>
                   <div>
@@ -66,10 +67,10 @@
                       <QuillEditor theme="snow" v-model:content="promptText" contentType="html"/>
                   </div>
                 </div>
-                <v-divider class="mb-6"/>
-                <div v-if="!seeMore">
+                <v-divider class="mb-6" v-if="!seeMore"/>
+                <div v-if="!seeMore" class="prompt">
                   <div class="d-flex justify-center align-center">
-                    <h2>Result</h2>
+                    <h3>Result</h3>
                     <v-spacer/>
                     <v-tooltip bottom>
                       <template v-slot:activator="{ on, attrs }">
@@ -85,10 +86,10 @@
                       <span>See output</span>
                     </v-tooltip>
                   </div>
-                    <h3>Output goes here</h3>
                     <QuillEditor theme="snow" v-model:content="output" contentType="html"/>
                 </div>
                 </v-card-text>
+                <v-divider></v-divider>
                 <v-card-actions>
                   <v-btn class="btn" @click="sendVariable()" :loading="loading">
                     <span> Generate letter </span>
@@ -96,28 +97,34 @@
                 </v-card-actions>
               </v-card>
         </v-col>
-        <v-col cols="12" md="6" v-if="seeMore" class="align-stretch">
-          <div class="d-flex justify-center align-center pt-7">
-            <h1>Output</h1>
-            <v-spacer/>
-            <v-tooltip bottom>
-              <template v-slot:activator="{ on, attrs }">
-                <v-icon
+        <v-col cols="12" md="6" v-if="seeMore" class="d-flex align-start justify-start">
+          <v-card class="card full-size" rounded>
+            <v-card-title class="d-flex">
+              <h2>Result</h2>
+              <v-spacer/>
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-icon
                   v-bind="attrs"
                   v-on="on"
                   color="#1A56FF"
                   @click="openSeeMorePanel()"
-                >
+                  >
                   mdi-account-eye
                 </v-icon>
               </template>
               <span>Hide output</span>
             </v-tooltip>
-          </div>
-          <v-divider class="mb-3"/>
-          <QuillEditor theme="snow" v-model:content="output" contentType="html"/>
+          </v-card-title>
+          <v-divider></v-divider>
+          <v-card-text>
+            <QuillEditor theme="snow" v-model:content="output" contentType="html"/>
+          </v-card-text>
+        </v-card>
+
         </v-col>
       </v-row>
+
       <v-snackbar
       v-model="showError"
       timeout="3000"
@@ -180,7 +187,7 @@ export default defineComponent({
     variablesSelected: {} as variablesSelectedType,
     prompt: {} as promptType,
     output: '',
-    seeMore: false,
+    seeMore: true,
     loading: false,
     tone: [{
         value: 'funny',
@@ -320,6 +327,7 @@ export default defineComponent({
     },
     async sendVariable(){
       this.loading = true
+      this.output = 'Generating...'
         const payload = {
           // style: this.toneValue,
           // letter: this.existingMarketingCopy,
@@ -327,7 +335,9 @@ export default defineComponent({
           prompt: this.promptText,
         }
       const  response  = await generatePromptResults(payload, this.authToken)
+      console.log('response: ', response);
       if(response.message){
+        this.output = '<b>Sorry we found an error, try again.</b>' + '- '+ response.message
         localStorage.setItem('token', '')
         this.showError = true
       }else{
@@ -348,6 +358,9 @@ body{
 }
   .maxWidth {
     max-width: 650px;
+  }
+  .full-size {
+    width: 100%;
   }
   .card{
     padding:  1.8rem;
@@ -407,7 +420,7 @@ body{
       font-size: 14px;
       font-weight: 600;
       line-height: 20px;
-      color: #FAFAFA;
+      color: #FAFAFA !important;
       }
   }
   .seeMore{

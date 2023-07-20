@@ -3,61 +3,112 @@
     <v-dialog
       v-model="dialog"
       persistent
-      width="724"
+      width="448"
     >
       <template v-slot:activator="{ props }">
         <v-btn
-          color="primary"
-          tonal
+          class="btn mx-6"
+          small
           v-bind="props"
         >
-          Generate Token
+          <span >Generate token</span>
         </v-btn>
       </template>
-      <v-card>
-        <v-card-title>
-          <span class="text-h5"> Generate Token</span>
+      <v-card
+      class="mx-auto"
+      elevation="8"
+      max-width="448"
+      rounded="lg"
+      >
+        <v-card-title class="d-flex px-6">
+          <div class="text-h6">Generate token</div>
+          <v-spacer></v-spacer>
+          <v-btn icon="mdi-close" variant="text" @click="dialog = false" size="x-small"></v-btn>
         </v-card-title>
-        <v-card-text>
-          <v-container>
+        <v-divider></v-divider>
+        <v-card-text class="pa-6">
             <v-row>
               <v-col cols="12">
+                <div class="text-subtitle-1 text-medium-emphasis">Email*</div>
+
                 <v-text-field
-                  label="Email*"
                   required
+                  clearable
+                  density="compact"
+                  placeholder="Email address"
+                  prepend-inner-icon="mdi-email-outline"
+                  variant="outlined"
+                  hide-details
                   v-model="user.email"
                 ></v-text-field>
               </v-col>
               <v-col cols="12">
+                <div class="text-subtitle-1 text-medium-emphasis d-flex align-center justify-space-between">
+                  Password
+
+                  <a
+                    class="text-caption text-decoration-none text-blue"
+                    href="https://app.dev.resights.dk/reset-password"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    Forgot login password?</a>
+                </div>
                 <v-text-field
-                  label="Password*"
-                  type="password"
                   required
+                  clearable
+                  :append-inner-icon="visible ? 'mdi-eye-off' : 'mdi-eye'"
+                  :type="visible ? 'text' : 'password'"
+                  density="compact"
+                  placeholder="Enter your password"
+                  prepend-inner-icon="mdi-lock-outline"
+                  variant="outlined"
+                  hide-details
+                  @click:append-inner="visible = !visible"
                   v-model="user.password"
                 ></v-text-field>
               </v-col>
+              <v-col cols="12" v-if="showMessageInWindow">
+                <div class="text-medium-emphasis text-caption grey-bg">
+                  <b class="l-blue">Warning:</b> After 3 consecutive failed login attempts,
+                  you account will be temporarily
+                  locked for three hours. If you must login now,
+                  you can also click "Forgot login password?"
+                  below to reset the login password.
+                </div>
+              </v-col>
             </v-row>
-          </v-container>
         </v-card-text>
-        <v-card-actions>
+        <v-divider></v-divider>
+        <v-card-actions class="px-6 py-4">
           <v-spacer></v-spacer>
           <v-btn
-            color="blue-darken-1"
-            variant="text"
-            @click="dialog = false"
-          >
-            Close
-          </v-btn>
-          <v-btn
-            color="blue-darken-1"
-            variant="text"
+            block
+            class="btn"
+            :loading="loading"
             @click="auth()"
           >
-            Generate
+            <span>Generate token</span>
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-snackbar
+      v-model="showErrorMessage"
+      timeout="3000"
+    >
+      <span>{{ ErrorMessage }}</span>
+      <template v-slot:actions>
+        <v-btn
+          color="blue"
+          variant="text"
+          @click="showErrorMessage = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
   </v-row>
 </template>
 <script lang="ts">
@@ -68,6 +119,12 @@ import {mapMutations} from "vuex";
 export default defineComponent({
     data: () => ({
       dialog: false,
+      showErrorMessage: false,
+      showMessageInWindow: false,
+      ErrorMessage: '',
+      loading:false,
+      visible:false,
+
       user: {
       email: null,
       password: null,
@@ -78,10 +135,48 @@ export default defineComponent({
     methods: {
       ...mapMutations(['updateToken']),
       async auth() {
-        const {data}= await getToken(this.user)
-        localStorage.setItem('token', data.token)
-        this.updateToken(data.token)
+          this.showErrorMessage = false
+          this.loading = true
+          const response= await getToken(this.user)
+          if(response.status_code !== 200) {
+            this.showErrorMessage = true
+            this.showMessageInWindow = true
+            this.ErrorMessage = response.message
+          } else {
+          localStorage.setItem('token', response.data.token)
+          this.updateToken(response.data.token)
+          this.dialog = false
+        }
+        this.loading = false
       }
     }
   })
 </script>
+<style scoped lang="scss">
+.btn{
+  border-radius: 0.3rem;
+  background: #1A56FF;
+  padding: 0.8rem 1.5rem;
+  display: flex;
+  padding: 10px 16px;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  text-transform: none;
+  span {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    color: #FAFAFA !important;
+    }
+}
+.grey-bg{
+  padding: 12px;
+  background: #e8f0fe87;
+  border-radius: 10px;
+}
+.l-blue{
+  color: #1A56FF;
+}
+</style>
+

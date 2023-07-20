@@ -12,6 +12,7 @@ const getToken = async (user) => {
     return await response.json();
     } catch (error) {
     console.error("Error:", error);
+    return error;
   }
 }
 const generatePromptResults = async (payload, token) => {
