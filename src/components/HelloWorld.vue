@@ -2,7 +2,7 @@
   <v-container :fluid="seeMore">
     <v-responsive>
       <v-row class="d-flex  pa-5" :class="{seeMore, 'justify-center align-center' : !seeMore}">
-        <v-col cols="12" :md="seeMore ? 4 : 6" class="align-stretch d-flex align-center justify-center">
+        <v-col cols="12" :md="seeMore ? 6 : 12" class="align-stretch d-flex align-center justify-center">
             <v-card class="card maxWidth" rounded>
                 <v-card-title>
                   <h2>Letter pilot by Resights</h2>
@@ -19,11 +19,7 @@
                   </div>
                   <div>
                     <h2>Settings</h2>
-                      <v-textarea
-                      label="Existing marketing copy"
-                      outlined
-                      v-model="existingMarketingCopy"
-                      />
+                      <QuillEditor theme="snow" v-model:content="existingMarketingCopy" contentType="html"/>
                   </div>
                   <div>
                     <h4>Pick a tone of voice</h4>
@@ -38,7 +34,7 @@
                   </div>
                   <div>
                     <h4>Select variables</h4>
-                    <div  v-for="item in variablesList" class="d-flex justify-start align-center checkboxSelect">
+                    <div  v-for="(item, key) in variablesList" :key="key" class="d-flex justify-start align-center checkboxSelect">
                       <div class="mr-3">
                         <v-checkbox
                           hide-details
@@ -62,20 +58,18 @@
                       type="number"
                       min="0"
                       max="1"
+                      variant="outlined"
                       v-model="temperature"
                       ></v-text-field>
                   </div>
                   <div>
-                    <v-textarea
-                      label="Prompt"
-                      v-model="promptText"
-                      ></v-textarea>
+                      <QuillEditor theme="snow" v-model:content="promptText" contentType="html"/>
                   </div>
                 </div>
                 <v-divider class="mb-6"/>
                 <div v-if="!seeMore">
                   <div class="d-flex justify-center align-center">
-                    <h3>Result</h3>
+                    <h2>Result</h2>
                     <v-spacer/>
                     <v-tooltip bottom>
                       <template v-slot:activator="{ on, attrs }">
@@ -91,11 +85,8 @@
                       <span>See output</span>
                     </v-tooltip>
                   </div>
-                  <v-textarea
-                    label="Output goes here"
-                    solo
-                    v-model="output"
-                    />
+                    <h3>Output goes here</h3>
+                    <QuillEditor theme="snow" v-model:content="output" contentType="html"/>
                 </div>
                 </v-card-text>
                 <v-card-actions>
@@ -105,7 +96,7 @@
                 </v-card-actions>
               </v-card>
         </v-col>
-        <v-col cols="12" md="8" v-if="seeMore" class="align-stretch">
+        <v-col cols="12" md="6" v-if="seeMore" class="align-stretch">
           <div class="d-flex justify-center align-center pt-7">
             <h1>Output</h1>
             <v-spacer/>
@@ -124,8 +115,7 @@
             </v-tooltip>
           </div>
           <v-divider class="mb-3"/>
-          <p v-html="promptText" class="px-5"/>
-          <p v-html="output" class="px-5"/>
+          <QuillEditor theme="snow" v-model:content="output" contentType="html"/>
         </v-col>
       </v-row>
     </v-responsive>
@@ -134,12 +124,14 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import prompt from '@/components/prompt.js';
 
 interface selected {
   [key: string]: any;
 }
-interface prompt {
+interface promptType {
   header: string;
   userFullNameText?: string;
   cityText?: string;
@@ -151,15 +143,22 @@ interface prompt {
   avoid?: string;
   incorporateVariablesText?: string;
 }
-const myPrompt: prompt = {} as prompt;
 
 export default defineComponent({
   name: 'HelloWorld',
+  components: {
+    QuillEditor
+  },
   data: () => ({
     toneValue: 'funny',
-    variablesSelected: {"full_name":"full_name","city":"city","property_type":"property_type","days_for_sale":"days_for_sale"},
+    variablesSelected: {
+      "full_name":"full_name",
+      "city":"city",
+      "property_type":"property_type",
+      "days_for_sale":"days_for_sale"
+    },
     output: '',
-    seeMore: true,
+    seeMore: false,
     loading: false,
     tone: [{
         value: 'funny',
@@ -201,7 +200,7 @@ export default defineComponent({
       },
     ],
     temperature: 1,
-    prompt: {} as prompt,
+    prompt: {} as promptType,
     existingMarketingCopy: '',
   }),
   mounted() {
@@ -231,11 +230,13 @@ export default defineComponent({
     } = this.prompt
 
     let content = {
-        incorporated: '',
-        fullName: '',
-        city: '',
-        propertyType: '',
-        daysForSale: '',
+      openTag: '',
+      fullName: '',
+      city: '',
+      incorporated: '',
+      propertyType: '',
+      daysForSale: '',
+      closeTag: '',
       }
 
     let Result =  {
@@ -248,7 +249,9 @@ export default defineComponent({
 
     }
     const variablesSelected = Object.keys(this.variablesSelected)
+
     if(variablesSelected.length){
+      content.openTag = '<ul>'
       content.incorporated = incorporateVariablesText || ''
     }
     if('full_name' in this.variablesSelected){
@@ -263,7 +266,10 @@ export default defineComponent({
     if('days_for_sale' in this.variablesSelected){
       content.daysForSale = daysForSaleText || ''
     }
-    Result.content = Object.values(content).join(' ')
+    if(variablesSelected.length){
+      content.closeTag = '</ul>'
+    }
+    Result.content = content.incorporated + content.openTag + content.fullName + content.city + content.propertyType + content.daysForSale + content.closeTag
     return Object.values(Result).join(' ')
     }
   },
@@ -278,14 +284,15 @@ export default defineComponent({
     },
     sendVariable(){
       this.loading = true
-      const variablesSelected = Object.keys(this.variablesSelected)
-      const payload = {
-        tone: this.toneValue,
-        existingMarketingCopy: this.existingMarketingCopy,
-        variables: variablesSelected
-      }
+      /*
+        const variablesSelected = Object.keys(this.variablesSelected)
+        const payload = {
+          tone: this.toneValue,
+          existingMarketingCopy: this.existingMarketingCopy,
+          variables: variablesSelected
+        }*/
       this.output =
-      "<main><h1>Basic HTML Animals</h1><p>This is the first paragraph in our page. It introduces our animals.</p><h2>The Llama</h2><p>Our Llama is a big fan of list items. When she spies a patch of them on a web page, she will eat them like sweets, licking her lips as she goes.</p><h2>The Anaconda</h2><p>The crafty anaconda likes to slither around the page, travelling rapidlyby way of anchors to sneak up on his prey.</p></main>"
+      "<h1>Basic HTML Animals</h1><p>This is the first paragraph in our page. It introduces our animals.</p><h2>The Llama</h2><p>Our Llama is a big fan of list items. When she spies a patch of them on a web page, she will eat them like sweets, licking her lips as she goes.</p><h2>The Anaconda</h2><p>The crafty anaconda likes to slither around the page, travelling rapidlyby way of anchors to sneak up on his prey.</p>"
       this.loading = false
     },
     openSeeMorePanel(){
